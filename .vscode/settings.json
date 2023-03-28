@@ -1,0 +1,18 @@
+{
+    "workbench.colorCustomizations": {},
+    "files.associations": {
+        "*.cpp": "cpp",
+        "initializer_list": "cpp",
+        "type_traits": "cpp",
+        "xtr1common": "cpp",
+        "algorithm": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "tuple": "cpp",
+        "xmemory": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "random": "cpp",
+        "condition_variable": "cpp"
+    }
+}

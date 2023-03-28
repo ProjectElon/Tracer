@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/source/**",
+                "${workspaceFolder}/vendor/**"
+            ],
+            "defines": [
+                "_CRT_SECURE_NO_WARNINGS",
+                "TRACER_DEBUG",
+                "TRACER_INTERNAL",
+                "TRACER_ASSERTIONS"
+            ],
+            "windowsSdkVersion": "10.0.19041.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

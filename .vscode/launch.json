@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Tracer",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/tracer.exe",
+            // "preLaunchTask": "Build",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/data",
+            "environment": [],
+            "console": "internalConsole",
+        }
+    ]
+}
