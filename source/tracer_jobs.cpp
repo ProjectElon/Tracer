@@ -13,17 +13,28 @@ TraceRays(trace_rays_job *Job)
 
         v3 &AccumulatedColor = Job->AccumulationFrameBuffer->Pixels[PixelIndex];
         AccumulatedColor += TraceRay(Ray, Job->World, Job->RayBounceCount, Job->RandomSeries);
-        Job->FrameBuffer->Pixels[PixelIndex] = Clamp(AccumulatedColor / (f32)Job->FrameCount, V3(0.0f), V3(1.0f));
+        v3 FinalColor = Clamp(AccumulatedColor / (f32)Job->FrameCount, V3(0.0f), V3(1.0f));
+        f32 Gamma = 2.2f;
+        f32 OneOverGamma = 1.0f / Gamma;
+        FinalColor.X = pow(FinalColor.X, OneOverGamma);
+        FinalColor.Y = pow(FinalColor.Y, OneOverGamma);
+        FinalColor.Z = pow(FinalColor.Z, OneOverGamma);
+        Job->FrameBuffer->Pixels[PixelIndex] = FinalColor;
     }
 }
 
 function void
 WorkerThread(work_queue *WorkQueue)
 {
-    while (true)
+    auto predicate = [&]() -> bool
+    {
+        return WorkQueue->JobIndex != WorkQueue->TailJobIndex || !WorkQueue->running;
+    };
+
+    while (WorkQueue->running)
     {
         std::unique_lock< std::mutex > Lock(WorkQueue->WorkMutex);
-        WorkQueue->WorkSignalCV.wait(Lock, [&]{ return WorkQueue->JobIndex != WorkQueue->TailJobIndex; });
+        WorkQueue->WorkSignalCV.wait(Lock, predicate);
 
         while (WorkQueue->JobIndex != WorkQueue->TailJobIndex)
         {
@@ -57,12 +68,37 @@ InitializeJobSystem(job_system *JobSystem)
         work_queue *WorkQueue = JobSystem->WorkQueue + ThreadIndex;
         WorkQueue->JobIndex = 0;
         WorkQueue->TailJobIndex = 0;
+        WorkQueue->running = true;
 
         JobSystem->ThreadPool[ThreadIndex] = std::thread(WorkerThread,
                                                          WorkQueue);
     }
 
     return true;
+}
+
+function void
+ShutdownJobSystem(job_system *JobSystem)
+{
+    while (!AllJobsCompleted(JobSystem));
+
+    for (u32 ThreadIndex = 0; ThreadIndex < JobSystem->ThreadCount - 1; ThreadIndex++)
+    {
+        work_queue *WorkQueue = JobSystem->WorkQueue + ThreadIndex;
+
+        {
+            std::lock_guard< std::mutex > Lock(WorkQueue->WorkMutex);
+            WorkQueue->running = false;
+        }
+
+        WorkQueue->WorkSignalCV.notify_one();
+    }
+
+    for (u32 ThreadIndex = 0; ThreadIndex < JobSystem->ThreadCount - 1; ThreadIndex++)
+    {
+        std::thread *Thread = &JobSystem->ThreadPool[ThreadIndex];
+        Thread->join();
+    }
 }
 
 function void

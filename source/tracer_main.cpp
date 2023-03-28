@@ -211,7 +211,7 @@ void OnFramebufferResize(GLFWwindow *Window,
                          i32         Width,
                          i32         Height)
 {
-    GlobalFrameBufferWidth  = Width;
+    GlobalFrameBufferWidth = Width;
     GlobalFrameBufferHeight = Height;
 }
 
@@ -237,7 +237,7 @@ int main()
     i32 FrameBufferWidth;
     i32 FrameBufferHeight;
     glfwGetFramebufferSize(Window, &FrameBufferWidth, &FrameBufferHeight);
-    GlobalFrameBufferWidth  = FrameBufferWidth;
+    GlobalFrameBufferWidth = FrameBufferWidth;
     GlobalFrameBufferHeight = FrameBufferHeight;
 
     glfwSetFramebufferSizeCallback(Window, OnFramebufferResize);
@@ -400,5 +400,29 @@ int main()
         glfwSwapBuffers(Window);
     }
 
+    ShutdownJobSystem(JobSystem);
+
     glfwTerminate();
+
+    u32 PixelCount = ViewportFrameBuffer.Width * ViewportFrameBuffer.Height;
+    color8 *OutputImage = (color8 *)malloc(sizeof(color8) * PixelCount);
+    for (u32 PixelIndex = 0; PixelIndex < PixelCount;PixelIndex++)
+    {
+        color8 *OutputPixel = OutputImage + PixelIndex;
+        v3 *FrameBufferPixel = ViewportFrameBuffer.Pixels + PixelIndex;
+        *OutputPixel = NormalizedColorToColor8(*FrameBufferPixel);
+    }
+
+    bool Success = SavePngImageToDisk("output.png",
+                                      OutputImage,
+                                      ViewportFrameBuffer.Width,
+                                      ViewportFrameBuffer.Height);
+    if (Success)
+    {
+        fprintf(stderr, "output.png saved successfully\n");
+    }
+    else
+    {
+        fprintf(stderr, "failed to save output.png\n");
+    }
 }

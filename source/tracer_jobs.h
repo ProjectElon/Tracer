@@ -30,6 +30,7 @@ struct work_queue
     std::condition_variable WorkSignalCV;
     std::mutex WorkMutex;
 
+    std::atomic< bool > running;
     std::atomic< u32 > JobIndex;
     std::atomic< u32 > TailJobIndex;
     trace_rays_job Jobs[1024];
@@ -57,6 +58,9 @@ WorkerThread(work_queue *WorkQueue);
 
 function bool
 InitializeJobSystem(job_system *JobSystem);
+
+function void
+ShutdownJobSystem(job_system *JobSystem);
 
 function void
 QueueTraceRaysJobs(job_system *JobSystem,
