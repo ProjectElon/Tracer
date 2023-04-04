@@ -52,6 +52,13 @@ ResizeTexture(opengl_texture *Texture,
                  0);
 }
 
+struct pixel
+{
+    f32 X;
+    f32 Y;
+    f32 Z;
+};
+
 void
 CopyFrameBufferToTexture(frame_buffer   *FrameBuffer,
                          opengl_texture *Texture)
@@ -59,6 +66,28 @@ CopyFrameBufferToTexture(frame_buffer   *FrameBuffer,
     Assert(FrameBuffer->Width == Texture->Width);
     Assert(FrameBuffer->Height == Texture->Height);
 
+#if ENABLE_SIMD
+    u32 PixelCount = Texture->Width * Texture->Height;
+    pixel *Pixels = (pixel *)malloc(sizeof(pixel) * PixelCount);
+    for (u32 PixelIndex = 0; PixelIndex < PixelCount; PixelIndex++)
+    {
+        v3 *Src = FrameBuffer->Pixels + PixelIndex;
+        pixel *Dst = Pixels + PixelIndex;
+        Dst->X = VectorComponent(*Src, 0);
+        Dst->Y = VectorComponent(*Src, 1);
+        Dst->Z = VectorComponent(*Src, 2);
+    }
+    glTexSubImage2D(GL_TEXTURE_2D,
+                    0,
+                    0,
+                    0,
+                    Texture->Width,
+                    Texture->Height,
+                    Texture->Format,
+                    Texture->PixelType,
+                    Pixels);
+    free(Pixels);
+#else
     glTexSubImage2D(GL_TEXTURE_2D,
                     0,
                     0,
@@ -68,4 +97,5 @@ CopyFrameBufferToTexture(frame_buffer   *FrameBuffer,
                     Texture->Format,
                     Texture->PixelType,
                     FrameBuffer->Pixels);
+#endif
 }

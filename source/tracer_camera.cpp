@@ -8,13 +8,13 @@ ResizeCamera(camera *Camera,
     f32 AspectRatio         = (f32)Width / (f32)Height;
     Camera->AspectRatio     = AspectRatio;
     f32 ViewportHeight      = 2.0f;
-    Camera->ViewportSize    = V3(AspectRatio * ViewportHeight, ViewportHeight, 0.0f);
-    v3 HalfViewportSize     = Camera->ViewportSize * 0.5f;
-    Camera->LowerLeftCornor = Camera->Origin - HalfViewportSize - V3(0.0f, 0.0f, Camera->FocalLength);
+    Camera->ViewportSize    = V2(AspectRatio * ViewportHeight, ViewportHeight);
+    v2 HalfViewportSize     = Camera->ViewportSize * 0.5f;
+    Camera->LowerLeftCornor = Camera->Origin - V3(HalfViewportSize, 0.0f) - V3(0.0f, 0.0f, Camera->FocalLength);
 
     u32 RayCount = Width * Height;
     Camera->RayCount = RayCount;
-    Camera->Rays     = (ray*)realloc(Camera->Rays, sizeof(ray) * RayCount);
+    Camera->Rays     = (ray*)_aligned_realloc(Camera->Rays, sizeof(ray) * RayCount, alignof(ray));
 
     const u32 OneMinusWidth  = Width  - 1;
     const u32 OneMinusHeight = Height - 1;

@@ -1,5 +1,5 @@
 #include "tracer_framebuffer.h"
-
+#include <stdlib.h>
 void
 InitializeFrameBuffer(frame_buffer *FrameBuffer,
                       u32           Width,
@@ -9,7 +9,7 @@ InitializeFrameBuffer(frame_buffer *FrameBuffer,
     Assert(Height);
     FrameBuffer->Width  = Width;
     FrameBuffer->Height = Height;
-    FrameBuffer->Pixels = (v3*)malloc(sizeof(v3) * Width * Height);
+    FrameBuffer->Pixels = (v3*)_aligned_malloc(sizeof(v3) * Width * Height, alignof(v3));
 }
 
 void
@@ -19,7 +19,7 @@ ResizeFrameBuffer(frame_buffer *FrameBuffer,
 {
     FrameBuffer->Width  = NewWidth;
     FrameBuffer->Height = NewHeight;
-    FrameBuffer->Pixels = (v3*)realloc(FrameBuffer->Pixels, sizeof(v3) * NewWidth * NewHeight);
+    FrameBuffer->Pixels = (v3*)_aligned_realloc(FrameBuffer->Pixels, sizeof(v3) * NewWidth * NewHeight, alignof(v3));
 }
 
 void

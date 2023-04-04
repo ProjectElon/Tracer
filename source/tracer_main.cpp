@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include <glad/glad.c>
+#include <stdlib.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -82,65 +83,10 @@ mesh* PushSphere(world *World, v3 Center, f32 Radius, u32 MaterialIndex = 0)
 
 inline v3 GetSkyColor(const ray &Ray)
 {
-    f32 T = 0.5f * (Ray.Direction.Y + 1.0f);
+    // f32 T = 0.5f * (Ray.Direction.Y + 1.0f);
+
+    f32 T = 0.5f * (VectorComponent(Ray.Direction, 1) + 1.0f);
     return (1.0f - T) * V3(1.0f) + T * V3(0.5f, 0.7f, 1.0f);
-}
-
-function inline bool
-RayCastSphere(const ray    &Ray,
-              const sphere &Sphere,
-              f32          *OutT)
-{
-    const v3 RayOriginToSphereCenter = Ray.Origin - Sphere.Center;
-    // note(harlequin): should we cache Ray.Direction * Ray.Direction ?
-    const f32 A = Dot(Ray.Direction, Ray.Direction);
-    const f32 HalfB = Dot(RayOriginToSphereCenter, Ray.Direction);
-    // note(harlequin): should we cache Sphere.Radius * Sphere.Radius ?
-    const f32 C = Dot(RayOriginToSphereCenter, RayOriginToSphereCenter) - Sphere.Radius * Sphere.Radius;
-    const f32 DiscriminantOver4 = HalfB * HalfB - A * C;
-    const f32 ClosestT = (-HalfB - sqrtf(DiscriminantOver4)) / A;
-    *OutT = ClosestT;
-    return DiscriminantOver4 > 0.0f && ClosestT > 0.0f;
-}
-
-function inline bool
-RayCastSphereFast(const ray    &Ray,
-                  const sphere &Sphere,
-                  f32          *OutT)
-{
-
-    const i32 Mask = 0xff;
-
-#if 0
-    v4 _RayOrigin = V4(Ray.Origin);
-    v4 _RayDirection = V4(Ray.Direction);
-    v4 _SphereCenter = V4(Sphere.Center);
-
-    __m128 RayOrigin = _mm_load_ps((const f32*)&_RayOrigin);
-    __m128 RayDirection = _mm_load_ps((const f32*)&_RayDirection);
-    __m128 SphereCenter = _mm_load_ps((const f32*)&_SphereCenter);
-#endif
-
-    // const v3 RayOriginToSphereCenter = Ray.Origin - Sphere.Center;
-    __m128 RayOriginToSphereCenter = _mm_sub_ps(Ray._Origin, Sphere._Center);
-
-    // const f32 A = Dot(Ray.Direction, Ray.Direction);
-    __m128 RayDirectionSquared = _mm_dp_ps(Ray._Direction, Ray._Direction, Mask);
-    const f32 A = ((f32*)&RayDirectionSquared)[0];
-
-    // const f32 HalfB = Dot(RayOriginToSphereCenter, Ray.Direction);
-    __m128 HalfBMul = _mm_dp_ps(RayOriginToSphereCenter, Ray._Direction, Mask);
-    const f32 HalfB = ((f32*)&HalfBMul)[0];
-
-    // note(harlequin): should we cache Sphere.Radius * Sphere.Radius ?
-    // const f32 C = Dot(RayOriginToSphereCenter, RayOriginToSphereCenter) - Sphere.Radius * Sphere.Radius;
-    __m128 RayOriginToSphereCenterSquared = _mm_dp_ps(RayOriginToSphereCenter, RayOriginToSphereCenter, Mask);
-    const f32 C = ((f32*)&RayOriginToSphereCenterSquared)[0] - Sphere.Radius * Sphere.Radius;
-
-    const f32 DiscriminantOver4 = HalfB * HalfB - A * C;
-    const f32 ClosestT = (-HalfB - sqrtf(DiscriminantOver4)) / A;
-    *OutT = ClosestT;
-    return DiscriminantOver4 > 0.0f && ClosestT > 0.0f;
 }
 
 function v3
@@ -162,7 +108,7 @@ TraceRay(ray Ray,
             const mesh *Mesh = World->Meshes + MeshIndex;
 
             f32  T   = 0.0f;
-            bool Hit = RayCastSphereFast(Ray, Mesh->Sphere, &T);
+            bool Hit = RayCastSphere(Ray, Mesh->Sphere, &T);
             if (Hit && T < ClosestT)
             {
                 ClosestT         = T;
@@ -346,24 +292,24 @@ int main()
         ImGuiBeginFrame();
         {
             {ImGui::Begin("Settings");
-            ImGui::SliderInt("RayBounceCount", (i32*)&RayBounceCount, 1, 64);
-            ImGui::SliderInt("FrameCount", (i32*)&FrameCount, 1, UINT_MAX);
+				ImGui::SliderInt("RayBounceCount", (i32*)&RayBounceCount, 1, 64);
+				ImGui::SliderInt("FrameCount", (i32*)&FrameCount, 1, UINT_MAX);
 
-            ImGuiIO &IO = ImGui::GetIO();
-            ImGui::Text("Framerate %.2f ms/frame (%.1f FPS)", 1000.0f / IO.Framerate, IO.Framerate);
-            ImGui::End();}
+				ImGuiIO &IO = ImGui::GetIO();
+				ImGui::Text("Framerate %.2f ms/frame (%.1f FPS)", 1000.0f / IO.Framerate, IO.Framerate);
+				ImGui::End();}
 
             {ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-            ImGui::Begin("Viewport");
-            ViewportSize = ImGui::GetContentRegionAvail();
+				ImGui::Begin("Viewport");
+				ViewportSize = ImGui::GetContentRegionAvail();
 
-            ImGui::Image((ImTextureID)ViewportTexture.Handle,
-                         ImVec2((f32)ViewportTexture.Width, (f32)ViewportTexture.Height),
-                         ImVec2(0, 0),
-                         ImVec2(1, 1));
+				ImGui::Image((ImTextureID)ViewportTexture.Handle,
+							 ImVec2((f32)ViewportTexture.Width, (f32)ViewportTexture.Height),
+							 ImVec2(0, 0),
+							 ImVec2(1, 1));
 
-            ImGui::End();
-            ImGui::PopStyleVar();}
+				ImGui::End();
+				ImGui::PopStyleVar();}
         }
         ImGuiEndFrame(GlobalFrameBufferWidth,
                       GlobalFrameBufferHeight);
@@ -376,20 +322,20 @@ int main()
             FrameCount = 1;
 
             ResizeCamera(&ViewportCamera,
-                          ViewportWidth,
-                          ViewportHeight);
+						 ViewportWidth,
+						 ViewportHeight);
 
             ResizeFrameBuffer(&AccumulationFrameBuffer,
-                               ViewportWidth,
-                               ViewportHeight);
+							  ViewportWidth,
+							  ViewportHeight);
 
             ResizeFrameBuffer(&ViewportFrameBuffer,
-                               ViewportWidth,
-                               ViewportHeight);
+							  ViewportWidth,
+							  ViewportHeight);
 
             ResizeTexture(&ViewportTexture,
-                           ViewportWidth,
-                           ViewportHeight);
+						  ViewportWidth,
+						  ViewportHeight);
         }
 
         if (FrameCount == 1)
@@ -405,7 +351,7 @@ int main()
     glfwTerminate();
 
     u32 PixelCount = ViewportFrameBuffer.Width * ViewportFrameBuffer.Height;
-    color8 *OutputImage = (color8 *)malloc(sizeof(color8) * PixelCount);
+    color8 *OutputImage = (color8 *)_aligned_malloc(sizeof(color8) * PixelCount, alignof(color8));
     for (u32 PixelIndex = 0; PixelIndex < PixelCount;PixelIndex++)
     {
         color8 *OutputPixel = OutputImage + PixelIndex;

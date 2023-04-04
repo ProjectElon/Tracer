@@ -8,7 +8,7 @@ struct camera
     f32 FocalLength;
     f32 AspectRatio;
 
-    v3 ViewportSize;
+    v2 ViewportSize;
 
     v3 Origin;
     v3 LowerLeftCornor;

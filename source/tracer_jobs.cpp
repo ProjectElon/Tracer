@@ -16,9 +16,7 @@ TraceRays(trace_rays_job *Job)
         v3 FinalColor = Clamp(AccumulatedColor / (f32)Job->FrameCount, V3(0.0f), V3(1.0f));
         f32 Gamma = 2.2f;
         f32 OneOverGamma = 1.0f / Gamma;
-        FinalColor.X = pow(FinalColor.X, OneOverGamma);
-        FinalColor.Y = pow(FinalColor.Y, OneOverGamma);
-        FinalColor.Z = pow(FinalColor.Z, OneOverGamma);
+        FinalColor = Pow(FinalColor, OneOverGamma);
         Job->FrameBuffer->Pixels[PixelIndex] = FinalColor;
     }
 }

@@ -42,10 +42,9 @@ inline v3 RandomV3(random_series *Series,
                    f32            MinValue,
                    f32            MaxValue)
 {
-    v3 Result;
-    Result.X = RandomBetween(Series, MinValue, MaxValue);
-    Result.Y = RandomBetween(Series, MinValue, MaxValue);
-    Result.Z = RandomBetween(Series, MinValue, MaxValue);
+    v3 Result = V3(RandomBetween(Series, MinValue, MaxValue),
+                   RandomBetween(Series, MinValue, MaxValue),
+                   RandomBetween(Series, MinValue, MaxValue));
     return Result;
 }
 
@@ -57,10 +56,9 @@ inline v3 RandomUnitV3(random_series *Series)
     f32 CosPhi   = cosf(Phi);
     f32 SinTheta = sinf(Theta);
     f32 CosTheta = cosf(Theta);
-    v3 Result;
-    Result.X = CosPhi * SinTheta;
-    Result.Y = SinPhi * SinTheta;
-    Result.Z = CosTheta;
+    v3 Result = V3(CosPhi * SinTheta,
+                   SinPhi * SinTheta,
+                   CosTheta);
     return Result;
 }
 
