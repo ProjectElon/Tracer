@@ -14,10 +14,7 @@ TraceRays(trace_rays_job *Job)
         v3 &AccumulatedColor = Job->AccumulationFrameBuffer->Pixels[PixelIndex];
         AccumulatedColor += TraceRay(Ray, Job->World, Job->RayBounceCount, Job->RandomSeries);
         v3 FinalColor = Clamp(AccumulatedColor / (f32)Job->FrameCount, V3(0.0f), V3(1.0f));
-        f32 Gamma = 2.2f;
-        f32 OneOverGamma = 1.0f / Gamma;
-        FinalColor = Pow(FinalColor, OneOverGamma);
-        Job->FrameBuffer->Pixels[PixelIndex] = FinalColor;
+        Job->FrameBuffer->Pixels[PixelIndex] = LinearToSRGB(FinalColor);
     }
 }
 

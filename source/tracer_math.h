@@ -314,6 +314,16 @@ Reflect(const v3& V, const v3& Normal)
 	return V - 2.0f * Dot(V, Normal) * Normal;
 }
 
+function inline v3
+Hadamard(const v3& A, const v3& B)
+{
+	v3 Result;
+	VectorComponent(Result, 0) = VectorComponent(A, 0) * VectorComponent(B, 0);
+	VectorComponent(Result, 1) = VectorComponent(A, 1) * VectorComponent(B, 1);
+	VectorComponent(Result, 2) = VectorComponent(A, 2) * VectorComponent(B, 2);
+	return Result;
+}
+
 // todo(harlequin): are the branchless versions actually faster ?
 function inline f32
 Minimum(f32 A, f32 B)
@@ -482,6 +492,26 @@ RayCastSphere(const ray    &Ray,
 	const f32 ClosestT = (-HalfB - SquareRoot(DiscriminantOver4)) / A;
 	*OutT = ClosestT;
 	return DiscriminantOver4 > 0.0f && ClosestT > 0.0f;
+}
+
+global_variable f32 gamma = 2.2f;
+
+inline v3 SRGBToLinear(v3 SRGBColor) {
+    v3 result;
+    VectorComponent(result, 0) = powf(VectorComponent(SRGBColor, 0), gamma);
+    VectorComponent(result, 1) = powf(VectorComponent(SRGBColor, 1), gamma);
+    VectorComponent(result, 2) = powf(VectorComponent(SRGBColor, 2), gamma);
+    return result;
+}
+
+inline v3 LinearToSRGB(v3 LinearColor)
+{
+    f32 one_over_gamma = 1.0f / gamma;
+    v3 result;
+    VectorComponent(result, 0) = powf(VectorComponent(LinearColor, 0), one_over_gamma);
+    VectorComponent(result, 1) = powf(VectorComponent(LinearColor, 1), one_over_gamma);
+    VectorComponent(result, 2) = powf(VectorComponent(LinearColor, 2), one_over_gamma);
+    return result;
 }
 
 #if 0

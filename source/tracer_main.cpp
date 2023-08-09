@@ -83,71 +83,63 @@ mesh* PushSphere(world *World, v3 Center, f32 Radius, u32 MaterialIndex = 0)
 
 inline v3 GetSkyColor(const ray &Ray)
 {
-    // f32 T = 0.5f * (Ray.Direction.Y + 1.0f);
-
     f32 T = 0.5f * (VectorComponent(Ray.Direction, 1) + 1.0f);
-    return (1.0f - T) * V3(1.0f) + T * V3(0.5f, 0.7f, 1.0f);
+    return (1.0f - T) * SRGBToLinear(V3(1.0f)) + T * SRGBToLinear(V3( 0.5f, 0.7f, 1.0f ));
 }
 
 function v3
 TraceRay(ray Ray,
          const world *World,
-         i32 BounceCount,
+         i32 Depth,
          random_series *RandomSeries)
 {
-    v3 FinalColor = V3(0.0f);
-    f32 Scalar = 1.0f;
-
-    while (BounceCount-- > 0)
+    if (Depth <= 0)
     {
-        i32 ClosestMeshIndex = -1;
-        f32 ClosestT         = MAX_F32;
+        return V3(0.0f);
+    }
 
-        for (u32 MeshIndex = 0; MeshIndex < World->MeshCount; MeshIndex++)
+    i32 ClosestMeshIndex = -1;
+    f32 ClosestT         = MAX_F32;
+
+    for (u32 MeshIndex = 0; MeshIndex < World->MeshCount; MeshIndex++)
+    {
+        const mesh *Mesh = World->Meshes + MeshIndex;
+
+        f32  T   = 0.0f;
+        bool Hit = RayCastSphere(Ray, Mesh->Sphere, &T);
+        if (Hit && T < ClosestT)
         {
-            const mesh *Mesh = World->Meshes + MeshIndex;
-
-            f32  T   = 0.0f;
-            bool Hit = RayCastSphere(Ray, Mesh->Sphere, &T);
-            if (Hit && T < ClosestT)
-            {
-                ClosestT         = T;
-                ClosestMeshIndex = MeshIndex;
-            }
+            ClosestT         = T;
+            ClosestMeshIndex = MeshIndex;
         }
+    }
 
-        if (ClosestMeshIndex != -1)
+    if (ClosestMeshIndex != -1)
+    {
+        const mesh *Mesh = World->Meshes + ClosestMeshIndex;
+        intersection_info IntersectionInfo = GetRaySphereIntersectionInfo(Ray,
+                                                                          Mesh->Sphere,
+                                                                          ClosestT);
+
+        const v3       &Point    = IntersectionInfo.Point + IntersectionInfo.Normal * 0.00001f;
+        const v3       &Normal   = IntersectionInfo.Normal;
+        const material &Material = World->Materials[Mesh->MaterialIndex];
+
+        v3 NewNormal = Normalize(Normal + Material.Roughness * RandomV3(RandomSeries, -0.5f, 0.5f));
+        v3 Reflected = Reflect(Ray.Direction, NewNormal);
+
+        if (Dot(Reflected, Normal) > 0.0f)
         {
-            const mesh *Mesh = World->Meshes + ClosestMeshIndex;
-            intersection_info IntersectionInfo = GetRaySphereIntersectionInfo(Ray,
-                                                                              Mesh->Sphere,
-                                                                              ClosestT);
-
-            const v3       &Point    = IntersectionInfo.Point + IntersectionInfo.Normal * 0.00001f;
-            const v3       &Normal   = IntersectionInfo.Normal;
-            const material &Material = World->Materials[Mesh->MaterialIndex];
-
-            FinalColor  += Material.Albedo * Scalar;
-            v3 NewNormal = Normalize(Normal + Material.Roughness * RandomV3(RandomSeries, -0.5f, 0.5f));
-            v3 Reflected = Reflect(Ray.Direction, NewNormal);
-
-            if (Dot(Reflected, Normal) <= 0.0f)
-            {
-                break;
-            }
-
-            Ray = RayOriginDirection(Point, Reflected);
+            ray NewRay = RayOriginDirection(Point, Reflected);
+            return SRGBToLinear(Material.Albedo) + 0.2f * TraceRay(NewRay, World, Depth - 1, RandomSeries);
         }
         else
         {
-            FinalColor += GetSkyColor(Ray) * Scalar;
-            break;
+            return V3(0.0f);
         }
-
-        Scalar *= 0.5f;
     }
 
-    return FinalColor;
+    return GetSkyColor(Ray);
 }
 
 global_variable u32 GlobalFrameBufferWidth;
@@ -212,9 +204,6 @@ int main()
                      FocalLength,
                      Origin);
 
-    v3 White = V3(1.0f, 1.0f, 1.0f);
-    v3 Blue  = V3(0.5f, 0.7f, 1.0f);
-
     world World = {};
     PushMaterial(&World, V3(1.0f, 0.0f, 0.0f), 0.0f);
     PushMaterial(&World, V3(0.0f, 1.0f, 0.0f), 0.0f);
@@ -224,7 +213,7 @@ int main()
     PushSphere(&World, V3(-0.5f, 0.0f, -1.0f), 0.5f, 1);
     PushSphere(&World, V3(0.0f, -100.5f, -1.0f), 100.0f, 2);
 
-    u32 RayBounceCount = 2;
+    u32 RayBounceCount = 64;
     u32 FrameCount = 1;
 
     opengl_texture ViewportTexture = {};
